@@ -1,0 +1,1 @@
+publishTo := Some(Resolvers.innovaThirdParty)

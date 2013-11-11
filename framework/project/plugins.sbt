@@ -12,3 +12,6 @@ libraryDependencies <+= sbtVersion { sv =>
   "org.scala-sbt" % "scripted-plugin" % sv
 }
 
+resolvers += "Innova plugins repo" at "http://repproxy.srv.inn.ru/artifactory/plugins-release-local"
+
+addSbtPlugin("ru.inn" % "inn-sbt-builder-plugin.feature-our-play-building" % "latest.release")
