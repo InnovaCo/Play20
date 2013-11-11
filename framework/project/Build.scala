@@ -19,7 +19,7 @@ object BuildSettings {
     (x => x == "true" || x == "") map
     (_ => true) getOrElse default
 
-  val experimental = Option(System.getProperty("experimental")).filter(_ == "true").map(_ => true).getOrElse(false)
+  val experimental = Option(System.getProperty("experimental")).filter(_ == "true").exists(_ => true)
 
   val buildOrganization = "com.typesafe.play"
   val buildVersion = propOr("play.version", "2.2-SNAPSHOT")
@@ -46,7 +46,7 @@ object BuildSettings {
     publishTo := Some(publishingMavenRepository),
     javacOptions ++= Seq("-source", "1.6", "-target", "1.6", "-encoding", "UTF-8", "-Xlint:-options"),
     javacOptions in doc := Seq("-source", "1.6"),
-    resolvers ++= typesafeResolvers,
+    resolvers ++= typesafeResolvers :+ Resolvers.innovaThirdParty :+ Resolvers.clojarsRepository,
     fork in Test := true,
     testOptions in Test += Tests.Filter(!_.endsWith("Benchmark")),
     testOptions in PerformanceTest ~= (_.filterNot(_.isInstanceOf[Tests.Filter]) :+ Tests.Filter(_.endsWith("Benchmark"))),
@@ -120,6 +120,8 @@ object Resolvers {
   val publishTypesafeMavenSnapshots = "Typesafe Maven Snapshots Repository for publishing" at "https://private-repo.typesafe.com/typesafe/maven-snapshots/"
   val publishTypesafeIvyReleases = Resolver.url("Typesafe Ivy Releases Repository for publishing", url("https://private-repo.typesafe.com/typesafe/ivy-releases/"))(Resolver.ivyStylePatterns)
   val publishTypesafeIvySnapshots = Resolver.url("Typesafe Ivy Snapshots Repository for publishing", url("https://private-repo.typesafe.com/typesafe/ivy-snapshots/"))(Resolver.ivyStylePatterns)
+  val innovaThirdParty = "Innova thirdparty repo" at "http://repproxy.srv.inn.ru/artifactory/ext-release-local"
+  val clojarsRepository = "Clojars repo" at "https://clojars.org/repo"
 
   val sonatypeSnapshots = "Sonatype snapshots" at "http://oss.sonatype.org/content/repositories/snapshots/"
 
@@ -267,7 +269,7 @@ object PlayBuild extends Build {
 
   lazy val ConsoleProject = PlaySbtProject("Console", "console")
     .settings(
-      resolvers += typesafeIvyReleases,
+      resolvers ++= Seq(typesafeIvyReleases, innovaThirdParty, clojarsRepository),
       libraryDependencies := consoleDependencies,
       sourceGenerators in Compile <+= sourceManaged in Compile map PlayVersion
     )

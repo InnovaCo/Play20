@@ -20,6 +20,8 @@ import java.security.cert.X509Certificate
 import java.io.{ File, FileInputStream }
 import scala.util.control.NonFatal
 import com.typesafe.netty.http.pipelining.HttpPipeliningHandler
+import com.flipkart.phantom.netty.uds.OioServerSocketChannel
+import com.flipkart.phantom.netty.uds.OioServerSocketChannelFactory
 
 /**
  * provides a stopable Server
@@ -38,10 +40,10 @@ class NettyServer(appProvider: ApplicationProvider, port: Option[Int], sslPort: 
 
   def applicationProvider = appProvider
 
-  private def newBootstrap = new ServerBootstrap(
-    new org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory(
-      Executors.newCachedThreadPool(NamedThreadFactory("netty-boss")),
-      Executors.newCachedThreadPool(NamedThreadFactory("netty-worker"))))
+  private def newBootstrap = {
+    val serverSocketChannelFactory = new OioServerSocketChannelFactory(Executors.newCachedThreadPool(NamedThreadFactory("netty-boss")),  Executors.newCachedThreadPool(NamedThreadFactory("netty-worker")))
+    serverSocketChannelFactory.setSocketFile(new File("/tmp/jsocket_temp"))
+    new ServerBootstrap(serverSocketChannelFactory)}
 
   class PlayPipelineFactory(secure: Boolean = false) extends ChannelPipelineFactory {
 
