@@ -31,19 +31,39 @@ trait ServerWithStop {
   def mainAddress: InetSocketAddress
 }
 
+case class ServerConfig(
+                         port: Option[Int],
+                         sslPort: Option[Int] = None,
+                         address: String = "0.0.0.0",
+                         unixDomainSocketPath: Option[String] = None
+                         )
+
 /**
  * creates a Server implementation based Netty
  */
-class NettyServer(appProvider: ApplicationProvider, port: Option[Int], sslPort: Option[Int] = None, address: String = "0.0.0.0", val mode: Mode.Mode = Mode.Prod) extends Server with ServerWithStop {
+class NettyServer(appProvider: ApplicationProvider, config: ServerConfig, val mode: Mode.Mode = Mode.Prod) extends Server with ServerWithStop {
 
-  require(port.isDefined || sslPort.isDefined, "Neither http.port nor https.port is specified")
+  require(config.port.isDefined || config.sslPort.isDefined, "Neither http.port nor https.port is specified")
 
   def applicationProvider = appProvider
 
   private def newBootstrap = {
-    val serverSocketChannelFactory = new OioServerSocketChannelFactory(Executors.newCachedThreadPool(NamedThreadFactory("netty-boss")),  Executors.newCachedThreadPool(NamedThreadFactory("netty-worker")))
-    serverSocketChannelFactory.setSocketFile(new File("/tmp/jsocket_temp"))
-    new ServerBootstrap(serverSocketChannelFactory)}
+    val serverSocketChannelFactory =
+      config.unixDomainSocketPath.map {
+        path =>
+          val factory = new OioServerSocketChannelFactory(
+            Executors.newCachedThreadPool(NamedThreadFactory("netty-boss")),
+            Executors.newCachedThreadPool(NamedThreadFactory("netty-worker")))
+          factory.setSocketFile(new File(path))
+          factory
+      }.getOrElse(
+        new org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory(
+          Executors.newCachedThreadPool(NamedThreadFactory("netty-boss")),
+          Executors.newCachedThreadPool(NamedThreadFactory("netty-worker")))
+      )
+
+    new ServerBootstrap(serverSocketChannelFactory)
+  }
 
   class PlayPipelineFactory(secure: Boolean = false) extends ChannelPipelineFactory {
 
@@ -130,19 +150,19 @@ class NettyServer(appProvider: ApplicationProvider, port: Option[Int], sslPort: 
   val defaultUpStreamHandler = new PlayDefaultUpstreamHandler(this, allChannels)
 
   // The HTTP server channel
-  val HTTP = port.map { port =>
+  val HTTP = config.port.map { port =>
     val bootstrap = newBootstrap
     bootstrap.setPipelineFactory(new PlayPipelineFactory)
-    val channel = bootstrap.bind(new InetSocketAddress(address, port))
+    val channel = bootstrap.bind(new InetSocketAddress(config.address, port))
     allChannels.add(channel)
     (bootstrap, channel)
   }
 
   // Maybe the HTTPS server channel
-  val HTTPS = sslPort.map { port =>
+  val HTTPS = config.sslPort.map { port =>
     val bootstrap = newBootstrap
     bootstrap.setPipelineFactory(new PlayPipelineFactory(secure = true))
-    val channel = bootstrap.bind(new InetSocketAddress(address, port))
+    val channel = bootstrap.bind(new InetSocketAddress(config.address, port))
     allChannels.add(channel)
     (bootstrap, channel)
   }
@@ -245,9 +265,12 @@ object NettyServer {
       val conf = app.application.configuration
       val server = new NettyServer(
         app,
+       ServerConfig(
         readConfParam(conf, "http.port").fold(Option(9000))(p => if (p == "disabled") Option.empty[Int] else Option(Integer.parseInt(p))),
         readConfParam(conf, "https.port").map(Integer.parseInt(_)),
-        readConfParam(conf, "http.address").getOrElse("0.0.0.0")
+        readConfParam(conf, "http.address").getOrElse("0.0.0.0"),
+       unixDomainSocketPath = readConfParam(conf, "uds.socket")
+       )
       )
 
       Runtime.getRuntime.addShutdownHook(new Thread {
@@ -316,9 +339,7 @@ object NettyServer {
     play.utils.Threads.withContextClassLoader(this.getClass.getClassLoader) {
       try {
         val appProvider = new ReloadableApplication(sbtLink, sbtDocHandler)
-        new NettyServer(appProvider, httpPort,
-          httpsPort,
-          mode = Mode.Dev)
+        new NettyServer(appProvider, ServerConfig(httpPort, httpsPort), mode = Mode.Dev)
       } catch {
         case e: ExceptionInInitializerError => throw e.getCause
       }
