@@ -22,7 +22,7 @@ object BuildSettings {
   val experimental = Option(System.getProperty("experimental")).filter(_ == "true").exists(_ => true)
 
   val buildOrganization = "com.typesafe.play"
-  val buildVersion = propOr("play.version", "2.2-SNAPSHOT")
+  val buildVersion = "2.2.0-inn"
   val buildWithDoc = boolProp("generate.doc")
   val previousVersion = "2.2.0"
   val buildScalaVersion = propOr("scala.version", "2.10.2")
@@ -39,11 +39,12 @@ object BuildSettings {
 
   val playCommonSettings = Seq(
     organization := buildOrganization,
-    version := buildVersion,
+    version := buildVersion + "-" + PlayBuild.goVersion,
     scalaVersion := buildScalaVersion,
     scalaBinaryVersion := CrossVersion.binaryScalaVersion(buildScalaVersion),
     ivyLoggingLevel := UpdateLogging.DownloadOnly,
-    publishTo := Some(publishingMavenRepository),
+    publishTo := Some(innovaThirdParty),
+    credentials += Credentials(Path.userHome / ".ivy2" / ".innova_credentials"),
     javacOptions ++= Seq("-source", "1.6", "-target", "1.6", "-encoding", "UTF-8", "-Xlint:-options"),
     javacOptions in doc := Seq("-source", "1.6"),
     resolvers ++= typesafeResolvers :+ Resolvers.innovaThirdParty :+ Resolvers.clojarsRepository,
@@ -101,7 +102,7 @@ object BuildSettings {
       .settings(
         scalaVersion := buildScalaVersionForSbt,
         scalaBinaryVersion := CrossVersion.binaryScalaVersion(buildScalaVersionForSbt),
-        publishTo := Some(publishingMavenRepository),
+        publishTo := Some(innovaThirdParty),
         publishArtifact in packageDoc := false,
         publishArtifact in (Compile, packageSrc) := true,
         scalacOptions ++= Seq("-encoding", "UTF-8", "-Xlint", "-deprecation", "-unchecked"))
@@ -121,6 +122,7 @@ object Resolvers {
   val publishTypesafeIvyReleases = Resolver.url("Typesafe Ivy Releases Repository for publishing", url("https://private-repo.typesafe.com/typesafe/ivy-releases/"))(Resolver.ivyStylePatterns)
   val publishTypesafeIvySnapshots = Resolver.url("Typesafe Ivy Snapshots Repository for publishing", url("https://private-repo.typesafe.com/typesafe/ivy-snapshots/"))(Resolver.ivyStylePatterns)
   val innovaThirdParty = "Innova thirdparty repo" at "http://repproxy.srv.inn.ru/artifactory/ext-release-local"
+  val innovaPlugins = "Innova plugins repo" at "http://repproxy.srv.inn.ru/artifactory/plugins-release-local"
   val clojarsRepository = "Clojars repo" at "https://clojars.org/repo"
 
   val sonatypeSnapshots = "Sonatype snapshots" at "http://oss.sonatype.org/content/repositories/snapshots/"
@@ -176,7 +178,7 @@ object PlayBuild extends Build {
   lazy val PlayProject = PlayRuntimeProject("Play", "play")
     .settings(
       libraryDependencies := runtime,
-      sourceGenerators in Compile <+= sourceManaged in Compile map PlayVersion,
+      sourceGenerators in Compile <+= (version, sourceManaged in Compile) map (PlayVersion(_)(_)),
       mappings in(Compile, packageSrc) <++= scalaTemplateSourceMappings,
       Docs.apiDocsIncludeManaged := true,
       parallelExecution in Test := false,
@@ -249,7 +251,7 @@ object PlayBuild extends Build {
           d.organization + ":" + d.name + ":" + d.revision
         }.sorted.foreach(println)
       },
-      publishTo := Some(publishingIvyRepository),
+      publishTo := Some(innovaPlugins),
       // Must be false, because due to the way SBT integrates with test libraries, and the way SBT uses Java object
       // serialisation to communicate with forked processes, and because this plugin will have SBT 0.13 on the forked
       // processes classpath while it's actually being run by SBT 0.12... if it forks you get serialVersionUID errors.
@@ -271,7 +273,7 @@ object PlayBuild extends Build {
     .settings(
       resolvers ++= Seq(typesafeIvyReleases, innovaThirdParty, clojarsRepository),
       libraryDependencies := consoleDependencies,
-      sourceGenerators in Compile <+= sourceManaged in Compile map PlayVersion
+      sourceGenerators in Compile <+= (version, sourceManaged in Compile) map (PlayVersion(_)(_))
     )
 
   lazy val PlayFiltersHelpersProject = PlayRuntimeProject("Filters-Helpers", "play-filters-helpers")
@@ -343,6 +345,9 @@ object PlayBuild extends Build {
         "org.fusesource.jansi" % "jansi" % "1.11" % "master"
       )
     )
+
+  private val goVersionFile = new java.io.File("go-version")
+  val goVersion = if(goVersionFile.exists) scala.io.Source.fromFile(goVersionFile).mkString else "0"
 
   lazy val publishedProjects = Seq[ProjectReference](
     PlayProject,

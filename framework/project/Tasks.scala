@@ -4,18 +4,18 @@ import sbt.File
 
 object Generators {
   // Generates a scala file that contains the play version for use at runtime.
-  def PlayVersion(dir: File): Seq[File] = {
-      val file = dir / "PlayVersion.scala"
-      IO.write(file,
-        """|package play.core
-            |
-            |object PlayVersion {
-            |    val current = "%s"
-            |    val scalaVersion = "%s"
-            |    val sbtVersion = "%s"
-            |}
-          """.stripMargin.format(BuildSettings.buildVersion, BuildSettings.buildScalaVersion, BuildSettings.buildSbtVersion))
-      Seq(file)
+  def PlayVersion(version: String)(dir: File): Seq[File] = {
+    val file = dir / "PlayVersion.scala"
+    IO.write(file,
+      """|package play.core
+        |
+        |object PlayVersion {
+        |    val current = "%s"
+        |    val scalaVersion = "%s"
+        |    val sbtVersion = "%s"
+        |}
+      """.stripMargin.format(version, BuildSettings.buildScalaVersion, BuildSettings.buildSbtVersion))
+    Seq(file)
   }
 }
 
@@ -23,7 +23,7 @@ object Tasks {
 
   // ----- Generate Distribution
   lazy val generateDist = TaskKey[Unit]("create-dist")
-  val generateDistTask: Setting[_] = 
+  val generateDistTask: Setting[_] =
     generateDist <<= (RepositoryBuilder.localRepoCreated in PlayBuild.RepositoryProject, baseDirectory in ThisBuild, target, version) map {
       (repo, bd, t, v) =>
         generateDistribution(repo, bd, t, v)
@@ -34,9 +34,9 @@ object Tasks {
     val playBase = bd.getParentFile
     // Assert if we have the right directory...
     assert(playBase / ".git" isDirectory, "%s is not play's home directory" format(playBase))
-    
+
     val coreFiles = Seq("play", "play.bat", "README.md", "CONTRIBUTING.md") map (playBase /)
-    
+
     val dist = target / "dist" / ("play-" + version)
     IO.createDirectory(dist)
     IO.createDirectory(dist / "repository")
@@ -57,7 +57,7 @@ object Tasks {
         }
       })
     }
-    
+
     // First, let's do the dangerously fun copy of our current sources.
     def copyDist(dir: String): Unit = {
       val code = playBase / dir

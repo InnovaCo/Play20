@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- You may freely edit this file. See commented blocks below for -->
+<!-- some examples of how to customize the build. -->
+<!-- (If you delete it and reopen the project it will be recreated.) -->
+<project name="common.build.sbt" basedir="./framework">
+    <description>Publish custom build of PlayFramework</description>
+
+    <property environment="env"/>
+    <echo message="${buildNumber}" file="go-version" append="false" />
+
+    <target name="sbt-publish">
+        <exec executable="sbt" failonerror="true">
+            <arg line="-Dsasdbt.override.build.repos=true"/>
+            <arg line="&quot;+ publish&quot;"/>
+        </exec>
+    </target>
+</project>
