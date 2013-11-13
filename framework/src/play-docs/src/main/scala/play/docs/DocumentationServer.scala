@@ -11,6 +11,6 @@ import play.core.server.{ServerConfig, NettyServer}
  * to create a server that embeds both the user application and the Play documentation
  * application.
  */
-class DocumentationServer(projectPath: File, sbtDocHandler: SBTDocHandler, port: java.lang.Integer) extends NettyServer(DocumentationApplication(projectPath, sbtDocHandler), ServerConfig(port = Some(port)),
+class DocumentationServer(projectPath: File, sbtDocHandler: SBTDocHandler, port: java.lang.Integer) extends NettyServer(DocumentationApplication(projectPath, sbtDocHandler), port = Some(port),
   mode = Mode.Dev
 )

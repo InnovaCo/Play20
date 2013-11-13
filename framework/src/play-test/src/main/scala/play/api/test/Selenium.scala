@@ -141,7 +141,7 @@ case class TestServer(port: Int, application: FakeApplication = FakeApplication(
     }
     //play.core.Invoker.uninit()
     try {
-      server = new play.core.server.NettyServer(new play.core.TestApplication(application), ServerConfig(Some(port), sslPort = sslPort), mode = Mode.Test)
+      server = new play.core.server.NettyServer(new play.core.TestApplication(application), Some(port), sslPort = sslPort, mode = Mode.Test)
     } catch {
       case t: Throwable =>
         t.printStackTrace

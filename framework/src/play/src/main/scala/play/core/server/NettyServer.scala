@@ -22,6 +22,7 @@ import scala.util.control.NonFatal
 import com.typesafe.netty.http.pipelining.HttpPipeliningHandler
 import com.flipkart.phantom.netty.uds.OioServerSocketChannel
 import com.flipkart.phantom.netty.uds.OioServerSocketChannelFactory
+import com.flipkart.phantom.runtime.impl.server.netty.UDSNettyServer
 
 /**
  * provides a stopable Server
@@ -41,27 +42,17 @@ case class ServerConfig(
 /**
  * creates a Server implementation based Netty
  */
-class NettyServer(appProvider: ApplicationProvider, config: ServerConfig, val mode: Mode.Mode = Mode.Prod) extends Server with ServerWithStop {
+class NettyServer(appProvider: ApplicationProvider, port: Option[Int], sslPort: Option[Int] = None, address: String = "0.0.0.0", val mode: Mode.Mode = Mode.Prod) extends Server with ServerWithStop {
 
-  require(config.port.isDefined || config.sslPort.isDefined, "Neither http.port nor https.port is specified")
+  require(port.isDefined || sslPort.isDefined, "Neither http.port nor https.port is specified")
 
   def applicationProvider = appProvider
 
   private def newBootstrap = {
     val serverSocketChannelFactory =
-      config.unixDomainSocketPath.map {
-        path =>
-          val factory = new OioServerSocketChannelFactory(
-            Executors.newCachedThreadPool(NamedThreadFactory("netty-boss")),
-            Executors.newCachedThreadPool(NamedThreadFactory("netty-worker")))
-          factory.setSocketFile(new File(path))
-          factory
-      }.getOrElse(
-        new org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory(
-          Executors.newCachedThreadPool(NamedThreadFactory("netty-boss")),
-          Executors.newCachedThreadPool(NamedThreadFactory("netty-worker")))
-      )
-
+      new org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory(
+        Executors.newCachedThreadPool(NamedThreadFactory("netty-boss")),
+        Executors.newCachedThreadPool(NamedThreadFactory("netty-worker")))
     new ServerBootstrap(serverSocketChannelFactory)
   }
 
@@ -150,19 +141,19 @@ class NettyServer(appProvider: ApplicationProvider, config: ServerConfig, val mo
   val defaultUpStreamHandler = new PlayDefaultUpstreamHandler(this, allChannels)
 
   // The HTTP server channel
-  val HTTP = config.port.map { port =>
+  val HTTP = port.map { port =>
     val bootstrap = newBootstrap
     bootstrap.setPipelineFactory(new PlayPipelineFactory)
-    val channel = bootstrap.bind(new InetSocketAddress(config.address, port))
+    val channel = bootstrap.bind(new InetSocketAddress(address, port))
     allChannels.add(channel)
     (bootstrap, channel)
   }
 
   // Maybe the HTTPS server channel
-  val HTTPS = config.sslPort.map { port =>
+  val HTTPS = sslPort.map { port =>
     val bootstrap = newBootstrap
     bootstrap.setPipelineFactory(new PlayPipelineFactory(secure = true))
-    val channel = bootstrap.bind(new InetSocketAddress(config.address, port))
+    val channel = bootstrap.bind(new InetSocketAddress(address, port))
     allChannels.add(channel)
     (bootstrap, channel)
   }
@@ -237,7 +228,7 @@ object NettyServer {
    * creates a NettyServer based on the application represented by applicationPath
    * @param applicationPath path to application
    */
-  def createServer(applicationPath: File): Option[NettyServer] = {
+  def createServer(applicationPath: File): Option[Server] = {
     // Manage RUNNING_PID file
     java.lang.management.ManagementFactory.getRuntimeMXBean.getName.split('@').headOption.map { pid =>
       val pidFile = Option(System.getProperty("pidfile.path")).map(new File(_)).getOrElse(new File(applicationPath.getAbsolutePath, "RUNNING_PID"))
@@ -263,15 +254,24 @@ object NettyServer {
     try {
       val app = new StaticApplication(applicationPath)
       val conf = app.application.configuration
-      val server = new NettyServer(
+
+      val socketConf = for(socketDir <- readConfParam(conf, "uds.socketDir");
+       socketName <- readConfParam(conf, "uds.socketName")
+      ) yield {
+        (socketDir, socketName)
+      }
+
+      // Create UDSServer if uds.socketDir and uds.socketName are defined.
+      val server = if (socketConf.isDefined){
+        val socketDir = socketConf.get._1
+        val socketName = socketConf.get._2
+        new UDSServer(app, socketDir,socketName)
+      } else new NettyServer(
         app,
-       ServerConfig(
         readConfParam(conf, "http.port").fold(Option(9000))(p => if (p == "disabled") Option.empty[Int] else Option(Integer.parseInt(p))),
-        readConfParam(conf, "https.port").map(Integer.parseInt(_)),
-        readConfParam(conf, "http.address").getOrElse("0.0.0.0"),
-       unixDomainSocketPath = readConfParam(conf, "uds.socket")
+        readConfParam(conf, "https.port").map(Integer.parseInt),
+        readConfParam(conf, "http.address").getOrElse("0.0.0.0")
        )
-      )
 
       Runtime.getRuntime.addShutdownHook(new Thread {
         override def run {
@@ -339,7 +339,7 @@ object NettyServer {
     play.utils.Threads.withContextClassLoader(this.getClass.getClassLoader) {
       try {
         val appProvider = new ReloadableApplication(sbtLink, sbtDocHandler)
-        new NettyServer(appProvider, ServerConfig(httpPort, httpsPort), mode = Mode.Dev)
+        new NettyServer(appProvider, httpPort, httpsPort, mode = Mode.Dev)
       } catch {
         case e: ExceptionInInitializerError => throw e.getCause
       }
