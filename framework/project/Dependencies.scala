@@ -118,7 +118,7 @@ object Dependencies {
 
     "thirdparty" % "junixsocket" % "1.4",
     "thirdparty" % "junixsocket-native-linux" % "1.4",
-    "com.flipkart.phantom" % "runtime-netty-uds"	% "1.1.9",
+    "com.flipkart.phantom" % "runtime-netty-uds"	% "1.1.9" excludeAll ExclusionRule("org.slf4j", "slf4j-api"),
 
     "org.databene" % "contiperf" % "2.2.0" % "test",
     "junit" % "junit" % "4.11" % "test")
