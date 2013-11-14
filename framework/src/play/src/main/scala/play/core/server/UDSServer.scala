@@ -30,6 +30,7 @@ class UDSServer(appProvider: ApplicationProvider, val socketDir: String, val soc
     this.serverBootstrap = createServerBootstrap()
     val channel = createChannel()
     allChannels.add(channel)
+    Play.logger.info(s"Listen for $socketDir/$socketName socket.")
     (this.serverBootstrap, channel)
   }
 

@@ -116,9 +116,8 @@ object Dependencies {
 
     "org.scala-lang" % "scala-reflect" % BuildSettings.buildScalaVersion,
 
-    "thirdparty" % "junixsocket" % "1.4",
-    "thirdparty" % "junixsocket-native-linux" % "1.4",
-    "com.flipkart.phantom" % "runtime-netty-uds"	% "1.1.9" excludeAll ExclusionRule("org.slf4j", "slf4j-api"),
+//    "thirdparty" % "junixsocket-native-linux" % "1.4",
+    "com.flipkart.phantom" % "runtime-netty-uds"	% "1.1.9",
 
     "org.databene" % "contiperf" % "2.2.0" % "test",
     "junit" % "junit" % "4.11" % "test")
