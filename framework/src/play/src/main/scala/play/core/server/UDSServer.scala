@@ -14,10 +14,6 @@ import play.core.server.netty.PlayDefaultUpstreamHandler
 /** Created by bfattakhov 2013 */
 class UDSServer(appProvider: ApplicationProvider, val socketDir: String, val socketName: String, val mode: Mode.Mode = Mode.Prod) extends PhantomUDSNetworkServer with Server with ServerWithStop {
 
-  if (!new File(socketDir, socketName).exists()) {
-    throw new Exception(s"Socket file does not exist: $socketDir/$socketName")
-  }
-
   this.setServerExecutors(Executors.newCachedThreadPool(NamedThreadFactory("netty-boss")))
   this.setWorkerExecutors(Executors.newCachedThreadPool(NamedThreadFactory("netty-worker")))
 
@@ -41,7 +37,7 @@ class UDSServer(appProvider: ApplicationProvider, val socketDir: String, val soc
     this.serverBootstrap = createServerBootstrap()
     val channel = createChannel()
     allChannels.add(channel)
-    Play.logger.info(s"Listen for $socketDir/$socketName socket.")
+    Play.logger.info(s"Listening for $socketDir/$socketName socket.")
     (this.serverBootstrap, channel)
   }
 
