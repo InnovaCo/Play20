@@ -53,15 +53,7 @@ trait PlayRun extends PlayInternalKeys {
     }
   }
 
-  private def parseSocket(socketFileString: String): (String, String) = {
-    try {
-      socketFileString.splitAt(socketFileString.lastIndexOf('/'))
-    } catch {
-      case e: Exception => sys.error(s"Invalid socketFile argument: $socketFileString")
-    }
-  }
-
-  private def filterArgs(args: Seq[String], defaultHttpPort: Int): (Seq[(String, String)], Option[Int], Option[Int], Option[(String, String)]) = {
+  private def filterArgs(args: Seq[String], defaultHttpPort: Int): (Seq[(String, String)], Option[Int], Option[Int]) = {
     val (properties, others) = args.span(_.startsWith("-D"))
 
     val javaProperties = properties.map(_.drop(2).split('=')).map(a => a(0) -> a(1)).toSeq
@@ -69,14 +61,12 @@ trait PlayRun extends PlayInternalKeys {
     // collect arguments plus config file property if present
     val httpPort = Option(System.getProperty("http.port"))
     val httpsPort = Option(System.getProperty("https.port"))
-    val socketFile = Option(System.getProperty("socket.file"))
 
     //port can be defined as a numeric argument or as disabled, -Dhttp.port argument or a generic sys property
     val maybePort = others.headOption.orElse(javaProperties.toMap.get("http.port")).orElse(httpPort)
     val maybeHttpsPort = javaProperties.toMap.get("https.port").orElse(httpsPort).map(parsePort)
-    val maybeSocketFile = javaProperties.toMap.get("socket.file").orElse(socketFile).map(parseSocket)
-    if (maybePort.exists(_ == "disabled")) (javaProperties, Option.empty[Int], maybeHttpsPort, maybeSocketFile)
-    else (javaProperties, maybePort.map(parsePort).orElse(Some(defaultHttpPort)), maybeHttpsPort, maybeSocketFile)
+    if (maybePort.exists(_ == "disabled")) (javaProperties, Option.empty[Int], maybeHttpsPort)
+    else (javaProperties, (maybePort.map(parsePort)).orElse(Some(defaultHttpPort)), maybeHttpsPort)
   }
 
   val createURLClassLoader: ClassLoaderCreator = (name, urls, parent) => new java.net.URLClassLoader(urls, parent) {
@@ -104,9 +94,9 @@ trait PlayRun extends PlayInternalKeys {
         val (_, hooks) = extracted.runTask(runHooks, state)
         val interaction = extracted.get(playInteractionMode)
 
-        val (properties, httpPort, httpsPort, socket) = filterArgs(args, defaultHttpPort = extracted.get(playDefaultPort))
+        val (properties, httpPort, httpsPort) = filterArgs(args, defaultHttpPort = extracted.get(playDefaultPort))
 
-        require(httpPort.isDefined || httpsPort.isDefined || socket.isDefined, "You have to specify socket or https.port or http.port")
+        require(httpPort.isDefined || httpsPort.isDefined, "You have to specify https.port when http.port is disabled")
 
         // Set Java properties
         properties.foreach {
@@ -238,10 +228,7 @@ trait PlayRun extends PlayInternalKeys {
 
         val server = {
           val mainClass = applicationLoader.loadClass("play.core.server.NettyServer")
-          if (socket.isDefined) {
-            val mainDev = mainClass.getMethod("mainDevSocketMode", classOf[SBTLink], classOf[SBTDocHandler], classOf[String], classOf[String])
-            mainDev.invoke(null, reloader, sbtDocHandler, socket.get._1: java.lang.String, socket.get._2: java.lang.String).asInstanceOf[play.core.server.ServerWithStop]
-          } else if (httpPort.isDefined) {
+          if (httpPort.isDefined) {
             val mainDev = mainClass.getMethod("mainDevHttpMode", classOf[SBTLink], classOf[SBTDocHandler], classOf[Int])
             mainDev.invoke(null, reloader, sbtDocHandler, httpPort.get: java.lang.Integer).asInstanceOf[play.core.server.ServerWithStop]
           } else {
@@ -350,7 +337,7 @@ trait PlayRun extends PlayInternalKeys {
 
     val interaction = extracted.get(playInteractionMode)
     // Parse HTTP port argument
-    val (properties, httpPort, httpsPort, socket) = filterArgs(args, defaultHttpPort = extracted.get(playDefaultPort))
+    val (properties, httpPort, httpsPort) = filterArgs(args, defaultHttpPort = extracted.get(playDefaultPort))
     require(httpPort.isDefined || httpsPort.isDefined, "You have to specify https.port when http.port is disabled")
 
     SbtProject.runTask(compile in Compile, state).get._2.toEither match {

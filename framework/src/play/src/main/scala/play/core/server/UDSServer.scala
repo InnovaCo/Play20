@@ -1,32 +1,21 @@
 package play.core.server
 
-import play.core.ApplicationProvider
+import com.flipkart.phantom.runtime.impl.server.netty.UDSNettyServer
+import play.core.{NamedThreadFactory, ApplicationProvider}
 import play.api.Mode
 import java.net.InetSocketAddress
 import play.api.Play
 import java.util.concurrent.Executors
 import scala.util.control.NonFatal
 import org.jboss.netty.channel.group.DefaultChannelGroup
-import java.io.File
-import play.core.NamedThreadFactory
-import play.core.server.netty.PlayDefaultUpstreamHandler
 
 /** Created by bfattakhov 2013 */
-class UDSServer(appProvider: ApplicationProvider, val socketDir: String, val socketName: String, val mode: Mode.Mode = Mode.Prod) extends PhantomUDSNetworkServer with Server with ServerWithStop {
-
-  if (!new File(socketDir, socketName).exists()) {
-    throw new Exception(s"Socket file does not exist: $socketDir/$socketName")
-  }
+class UDSServer(appProvider: ApplicationProvider, val socketDir: String, val socketName: String, val mode: Mode.Mode = Mode.Prod) extends UDSNettyServer with Server with ServerWithStop {
 
   this.setServerExecutors(Executors.newCachedThreadPool(NamedThreadFactory("netty-boss")))
   this.setWorkerExecutors(Executors.newCachedThreadPool(NamedThreadFactory("netty-worker")))
-
-  // Our upStream handler is stateless. Let's use this instance for every new connection
-  val defaultUpStreamHandler = new PlayDefaultUpstreamHandler(this, allChannels)
-
   this.setSocketDir(socketDir)
   this.setSocketName(socketName)
-  this.setPipelineFactory(new PipelineFactory(appProvider,defaultUpStreamHandler))
 
   afterPropertiesSet()
 
@@ -76,6 +65,6 @@ class UDSServer(appProvider: ApplicationProvider, val socketDir: String, val soc
   mode match {
     case Mode.Test =>
     case _ =>
-      Play.logger.info("Listening for socket on %s".format(SOCKET._2.getLocalAddress))
+      Play.logger.info("Listening for HTTP on %s".format(SOCKET._2.getLocalAddress))
   }
 }

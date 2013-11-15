@@ -346,7 +346,7 @@ object PlayBuild extends Build {
     )
 
   private val goVersionFile = new java.io.File("go-version")
-  val goVersion = if(goVersionFile.exists) scala.io.Source.fromFile(goVersionFile).mkString.trim else "0"
+  val goVersion = if(goVersionFile.exists) scala.io.Source.fromFile(goVersionFile).mkString else "0"
 
   lazy val publishedProjects = Seq[ProjectReference](
     PlayProject,
