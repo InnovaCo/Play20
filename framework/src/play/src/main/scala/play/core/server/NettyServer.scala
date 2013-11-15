@@ -20,9 +20,6 @@ import java.security.cert.X509Certificate
 import java.io.{ File, FileInputStream }
 import scala.util.control.NonFatal
 import com.typesafe.netty.http.pipelining.HttpPipeliningHandler
-import com.flipkart.phantom.netty.uds.OioServerSocketChannel
-import com.flipkart.phantom.netty.uds.OioServerSocketChannelFactory
-import com.flipkart.phantom.runtime.impl.server.netty.UDSNettyServer
 
 /**
  * provides a stopable Server
@@ -255,16 +252,18 @@ object NettyServer {
       val app = new StaticApplication(applicationPath)
       val conf = app.application.configuration
 
-      val socketConf = for(socketDir <- readConfParam(conf, "uds.socketDir");
-       socketName <- readConfParam(conf, "uds.socketName")
-      ) yield {
-        (socketDir, socketName)
+      val socketFile = for (socketFileString <- readConfParam(conf, "socket.file")) yield {
+        try {
+          socketFileString.splitAt(socketFileString.lastIndexOf('/'))
+        } catch {
+          case e: Exception => sys.error(s"Invalid socketFile argument: $socketFileString")
+        }
       }
 
-      // Create UDSServer if uds.socketDir and uds.socketName are defined.
-      val server = if (socketConf.isDefined){
-        val socketDir = socketConf.get._1
-        val socketName = socketConf.get._2
+      // Create UDSServer if uds.socketFile is defined.
+      val server = if (socketFile.isDefined){
+        val socketDir = socketFile.get._1
+        val socketName = socketFile.get._2
         new UDSServer(app, socketDir,socketName)
       } else new NettyServer(
         app,
@@ -295,6 +294,7 @@ object NettyServer {
     if (param.isDefined) param else conf.getString(paramName)
   }
 
+
   /**
    * attempts to create a NettyServer based on either
    * passed in argument or `user.dir` System property or current directory
@@ -321,7 +321,7 @@ object NettyServer {
    * <p>This method uses simple Java types so that it can be used with reflection by code
    * compiled with different versions of Scala.
    */
-  def mainDevOnlyHttpsMode(sbtLink: SBTLink, sbtDocHandler: SBTDocHandler, httpsPort: Int): NettyServer = {
+  def mainDevOnlyHttpsMode(sbtLink: SBTLink, sbtDocHandler: SBTDocHandler, httpsPort: Int): ServerWithStop = {
     mainDev(sbtLink, sbtDocHandler, None, Some(httpsPort))
   }
 
@@ -331,15 +331,22 @@ object NettyServer {
    * <p>This method uses simple Java types so that it can be used with reflection by code
    * compiled with different versions of Scala.
    */
-  def mainDevHttpMode(sbtLink: SBTLink, sbtDocHandler: SBTDocHandler, httpPort: Int): NettyServer = {
-    mainDev(sbtLink, sbtDocHandler, Some(httpPort), Option(System.getProperty("https.port")).map(Integer.parseInt(_)))
+  def mainDevHttpMode(sbtLink: SBTLink, sbtDocHandler: SBTDocHandler, httpPort: Int): ServerWithStop = {
+    mainDev(sbtLink, sbtDocHandler, Some(httpPort), Option(System.getProperty("https.port")).map(Integer.parseInt))
   }
 
-  private def mainDev(sbtLink: SBTLink, sbtDocHandler: SBTDocHandler, httpPort: Option[Int], httpsPort: Option[Int]): NettyServer = {
+  def mainDevSocketMode(sbtLink: SBTLink, sbtDocHandler: SBTDocHandler, socketDir: String, socketFile: String): ServerWithStop = {
+    mainDev(sbtLink, sbtDocHandler, None, None, Some(socketDir, socketFile))
+  }
+
+  private def mainDev(sbtLink: SBTLink, sbtDocHandler: SBTDocHandler, httpPort: Option[Int], httpsPort: Option[Int] = None, socketConf: Option[(String, String)] = None): ServerWithStop = {
     play.utils.Threads.withContextClassLoader(this.getClass.getClassLoader) {
       try {
         val appProvider = new ReloadableApplication(sbtLink, sbtDocHandler)
-        new NettyServer(appProvider, httpPort, httpsPort, mode = Mode.Dev)
+
+        if (socketConf.isDefined) new UDSServer(appProvider, socketConf.get._1, socketConf.get._2, mode = Mode.Dev)
+        else new NettyServer(appProvider, httpPort, httpsPort, mode = Mode.Dev)
+
       } catch {
         case e: ExceptionInInitializerError => throw e.getCause
       }
