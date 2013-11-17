@@ -13,7 +13,6 @@ import org.newsclub.net.unix.AFUNIXSocketAddress;
 import org.springframework.util.Assert;
 import org.trpr.platform.core.impl.logging.LogFactory;
 import org.trpr.platform.core.spi.logging.Logger;
-import org.trpr.platform.runtime.impl.config.FileLocator;
 
 import java.io.File;
 import java.io.IOException;
@@ -226,5 +225,4 @@ public class PhantomUDSNetworkServer extends AbstractNettyNetworkServer {
     public NetworkServer.TransmissionProtocol getTransmissionProtocol() {
         return null;
     }
-    /** End Getter/Setter methods */
 }

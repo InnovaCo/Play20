@@ -1,7 +1,6 @@
 package play.core.server
 
 import com.flipkart.phantom.runtime.impl.server.netty.ChannelHandlerPipelineFactory
-import org.jboss.netty.channel.Channels._
 import scala.Some
 import org.jboss.netty.handler.ssl.SslHandler
 import org.jboss.netty.handler.codec.http.{HttpContentDecompressor, HttpResponseEncoder, HttpRequestDecoder}
@@ -19,7 +18,7 @@ class PipelineFactory(applicationProvider: ApplicationProvider,
                       defaultUpStreamHandler: PlayDefaultUpstreamHandler, secure: Boolean = false) extends ChannelHandlerPipelineFactory {
 
   override def getPipeline = {
-    val newPipeline = pipeline()
+    val newPipeline = super.getPipeline()
     if (secure) {
       sslContext.map {
         ctxt =>
@@ -28,9 +27,9 @@ class PipelineFactory(applicationProvider: ApplicationProvider,
           newPipeline.addLast("ssl", new SslHandler(sslEngine))
       }
     }
-    val maxInitialLineLength = Option(System.getProperty("http.netty.maxInitialLineLength")).map(Integer.parseInt(_)).getOrElse(4096)
-    val maxHeaderSize = Option(System.getProperty("http.netty.maxHeaderSize")).map(Integer.parseInt(_)).getOrElse(8192)
-    val maxChunkSize = Option(System.getProperty("http.netty.maxChunkSize")).map(Integer.parseInt(_)).getOrElse(8192)
+    val maxInitialLineLength = Option(System.getProperty("http.netty.maxInitialLineLength")).map(Integer.parseInt).getOrElse(4096)
+    val maxHeaderSize = Option(System.getProperty("http.netty.maxHeaderSize")).map(Integer.parseInt).getOrElse(8192)
+    val maxChunkSize = Option(System.getProperty("http.netty.maxChunkSize")).map(Integer.parseInt).getOrElse(8192)
     newPipeline.addLast("decoder", new HttpRequestDecoder(maxInitialLineLength, maxHeaderSize, maxChunkSize))
     newPipeline.addLast("encoder", new HttpResponseEncoder())
     newPipeline.addLast("decompressor", new HttpContentDecompressor())
