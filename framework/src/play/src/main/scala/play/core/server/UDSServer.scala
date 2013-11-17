@@ -17,6 +17,9 @@ class UDSServer(appProvider: ApplicationProvider, val socketDir: String, val soc
   this.setServerExecutors(Executors.newCachedThreadPool(NamedThreadFactory("netty-boss")))
   this.setWorkerExecutors(Executors.newCachedThreadPool(NamedThreadFactory("netty-worker")))
 
+  // Keep a reference on all opened channels (useful to close everything properly, especially in DEV mode)
+  val allChannels = new DefaultChannelGroup()
+
   // Our upStream handler is stateless. Let's use this instance for every new connection
   val defaultUpStreamHandler = new PlayDefaultUpstreamHandler(this, allChannels)
 
@@ -26,15 +29,12 @@ class UDSServer(appProvider: ApplicationProvider, val socketDir: String, val soc
 
   afterPropertiesSet()
 
-  // Keep a reference on all opened channels (useful to close everything properly, especially in DEV mode)
-  val allChannels = new DefaultChannelGroup
 
   override def mainAddress(): InetSocketAddress = SOCKET._2.getLocalAddress.asInstanceOf[InetSocketAddress]
 
   def applicationProvider: ApplicationProvider = appProvider
 
   val SOCKET = {
-    this.serverBootstrap = createServerBootstrap()
     val channel = createChannel()
     allChannels.add(channel)
     Play.logger.info(s"Listening for $socketDir/$socketName socket.")
