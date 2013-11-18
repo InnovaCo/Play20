@@ -5,19 +5,19 @@ import sbt.Keys._
 
 trait Keys {
 
-  val jdbc = "com.typesafe.play" %% "play-jdbc" % play.core.PlayVersion.current
+  val jdbc = component("play-jdbc")
 
-  val anorm = "com.typesafe.play" %% "anorm" % play.core.PlayVersion.current
+  val anorm = component("anorm")
 
-  val javaCore = "com.typesafe.play" %% "play-java" % play.core.PlayVersion.current
+  val javaCore = component("play-java")
 
-  val javaJdbc = "com.typesafe.play" %% "play-java-jdbc" % play.core.PlayVersion.current
+  val javaJdbc = component("play-java-jdbc")
 
-  val javaEbean = "com.typesafe.play" %% "play-java-ebean" % play.core.PlayVersion.current
+  val javaEbean = component("play-java-ebean")
 
-  val javaJpa = "com.typesafe.play" %% "play-java-jpa" % play.core.PlayVersion.current
+  val javaJpa = component("play-java-jpa")
 
-  def component(id: String) = "com.typesafe.play" %% id % play.core.PlayVersion.current
+  def component(id: String) = "com.typesafe.play" %% (id + play.core.PlayVersion.innovaSuffix) % play.core.PlayVersion.current
 
   val filters = "com.typesafe.play" %% "filters-helpers" % play.core.PlayVersion.current
 
@@ -121,6 +121,7 @@ trait Keys {
   val defaultTemplatesImport = Seq("play.api.templates._", "play.api.templates.PlayMagic._")
 
 }
+
 object Keys extends Keys
 
 trait PlayInternalKeys {

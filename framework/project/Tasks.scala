@@ -13,8 +13,9 @@ object Generators {
         |    val current = "%s"
         |    val scalaVersion = "%s"
         |    val sbtVersion = "%s"
+        |    val innovaSuffix = "%s"
         |}
-      """.stripMargin.format(version, BuildSettings.buildScalaVersion, BuildSettings.buildSbtVersion))
+      """.stripMargin.format(version, BuildSettings.buildScalaVersion, BuildSettings.buildSbtVersion, PlayBuild.innovaSuffix))
     Seq(file)
   }
 }

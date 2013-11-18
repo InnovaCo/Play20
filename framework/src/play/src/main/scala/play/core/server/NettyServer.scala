@@ -64,9 +64,9 @@ class NettyServer(appProvider: ApplicationProvider, port: Option[Int], sslPort: 
           newPipeline.addLast("ssl", new SslHandler(sslEngine))
         }
       }
-      val maxInitialLineLength = Option(System.getProperty("http.netty.maxInitialLineLength")).map(Integer.parseInt(_)).getOrElse(4096)
-      val maxHeaderSize = Option(System.getProperty("http.netty.maxHeaderSize")).map(Integer.parseInt(_)).getOrElse(8192)
-      val maxChunkSize = Option(System.getProperty("http.netty.maxChunkSize")).map(Integer.parseInt(_)).getOrElse(8192)
+      val maxInitialLineLength = Option(System.getProperty("http.netty.maxInitialLineLength")).map(Integer.parseInt).getOrElse(4096)
+      val maxHeaderSize = Option(System.getProperty("http.netty.maxHeaderSize")).map(Integer.parseInt).getOrElse(8192)
+      val maxChunkSize = Option(System.getProperty("http.netty.maxChunkSize")).map(Integer.parseInt).getOrElse(8192)
       newPipeline.addLast("decoder", new HttpRequestDecoder(maxInitialLineLength, maxHeaderSize, maxChunkSize))
       newPipeline.addLast("encoder", new HttpResponseEncoder())
       newPipeline.addLast("decompressor", new HttpContentDecompressor())
@@ -241,7 +241,7 @@ object NettyServer {
 
         new FileOutputStream(pidFile).write(pid.getBytes)
         Runtime.getRuntime.addShutdownHook(new Thread {
-          override def run {
+          override def run() {
             pidFile.delete()
           }
         })
@@ -273,7 +273,7 @@ object NettyServer {
        )
 
       Runtime.getRuntime.addShutdownHook(new Thread {
-        override def run {
+        override def run() {
           server.stop()
         }
       })
