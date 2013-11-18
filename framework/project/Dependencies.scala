@@ -116,8 +116,10 @@ object Dependencies {
 
     "org.scala-lang" % "scala-reflect" % BuildSettings.buildScalaVersion,
 
-//    "thirdparty" % "junixsocket-native-linux" % "1.4",
-    "com.flipkart.phantom" % "runtime-netty-uds"	% "1.1.9",
+    "thirdparty" % "junixsocket" % "1.4",
+    "thirdparty" % "junixsocket-native-linux" % "1.4",
+    "com.flipkart.phantom" % "runtime-netty-uds"	% "1.1.9" exclude("com.flipkart.phantom", "netty-uds"),
+    "com.flipkart.phantom" % "netty-uds"	% "1.1.9" exclude("org.newsclub", "junixsocket"),
 
     "org.databene" % "contiperf" % "2.2.0" % "test",
     "junit" % "junit" % "4.11" % "test")
