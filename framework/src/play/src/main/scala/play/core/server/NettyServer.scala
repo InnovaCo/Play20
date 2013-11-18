@@ -256,7 +256,7 @@ object NettyServer {
         try {
           socketFileString.splitAt(socketFileString.lastIndexOf('/'))
         } catch {
-          case e: Exception => sys.error(s"Invalid socketFile argument: $socketFileString")
+          case e: Exception => sys.error(s"Invalid socket.file argument: $socketFileString")
         }
       }
 

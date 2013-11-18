@@ -368,9 +368,14 @@ trait PlayRun extends PlayInternalKeys {
 
           val classpath = dependencies.map(_.data).map(_.getCanonicalPath).reduceLeft(_ + java.io.File.pathSeparator + _)
 
-          import java.lang.{ ProcessBuilder => JProcessBuilder }
+          import java.lang.{ProcessBuilder => JProcessBuilder}
+          val args = if (socket.isDefined) {
+            "-Dsocket.file=" + socket.get
+          } else {
+            "-Dhttp.port=" + httpPort.getOrElse("disabled")
+          }
           val builder = new JProcessBuilder(Seq(
-            "java") ++ (properties ++ System.getProperties.asScala).map { case (key, value) => "-D" + key + "=" + value } ++ Seq("-Dhttp.port=" + httpPort.getOrElse("disabled"), "-cp", classpath, "play.core.server.NettyServer", extracted.currentProject.base.getCanonicalPath): _*)
+            "java") ++ (properties ++ System.getProperties.asScala).map { case (key, value) => "-D" + key + "=" + value } ++ Seq(args, "-cp", classpath, "play.core.server.NettyServer", extracted.currentProject.base.getCanonicalPath): _*)
 
           new Thread {
             override def run {
