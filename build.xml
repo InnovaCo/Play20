@@ -6,10 +6,9 @@
     <description>Publish custom build of PlayFramework</description>
 
     <property environment="env"/>
-    <echo message="${buildNumber}" file="go-version" append="false" />
-
     <target name="sbt-publish">
         <exec executable="sbt" failonerror="true">
+            <arg line="-Dgo.version=${buildNumber}"/>
             <arg line="-Dsbt.override.build.repos=true"/>
             <arg line="&quot;+ publish&quot;"/>
         </exec>

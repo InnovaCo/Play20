@@ -22,7 +22,7 @@ object BuildSettings {
   val experimental = Option(System.getProperty("experimental")).filter(_ == "true").exists(_ => true)
 
   val buildOrganization = "com.typesafe.play"
-  val buildVersion = "2.2.0-inn"
+  val buildVersion = "2.2.0"
   val buildWithDoc = boolProp("generate.doc")
   val previousVersion = "2.2.0"
   val buildScalaVersion = propOr("scala.version", "2.10.2")
@@ -64,7 +64,7 @@ object BuildSettings {
     val bcSettings: Seq[Setting[_]] = if (testBinaryCompatibility) {
       mimaDefaultSettings ++ Seq(previousArtifact := Some(buildOrganization % StringUtilities.normalize(name) % previousVersion))
     } else Nil
-    Project(name, file("src/" + dir))
+    Project(name + PlayBuild.innovaSuffix, file("src/" + dir))
       .configs(PerformanceTest)
       .settings(inConfig(PerformanceTest)(Defaults.testTasks) : _*)
       .settings(playCommonSettings: _*)
@@ -77,7 +77,7 @@ object BuildSettings {
   }
 
   def PlayRuntimeProject(name: String, dir: String): Project = {
-    Project(name, file("src/" + dir))
+    Project(name + PlayBuild.innovaSuffix, file("src/" + dir))
       .configs(PerformanceTest)
       .settings(inConfig(PerformanceTest)(Defaults.testTasks) : _*)
       .settings(playCommonSettings: _*)
@@ -96,7 +96,7 @@ object BuildSettings {
   )
 
   def PlaySbtProject(name: String, dir: String): Project = {
-    Project(name, file("src/" + dir))
+    Project(name + PlayBuild.innovaSuffix, file("src/" + dir))
       .settings(playCommonSettings: _*)
       .settings(defaultScalariformSettings: _*)
       .settings(
@@ -240,6 +240,7 @@ object PlayBuild extends Build {
     .settings(
       sbtPlugin := true,
       libraryDependencies := sbtDependencies,
+      resolvers += innovaThirdParty,
       sbtVersion in GlobalScope := buildSbtVersion,
       sbtBinaryVersion in GlobalScope := buildSbtVersionBinaryCompatible,
       sbtDependency <<= sbtDependency { dep =>
@@ -345,8 +346,8 @@ object PlayBuild extends Build {
       )
     )
 
-  private val goVersionFile = new java.io.File("go-version")
-  val goVersion = if(goVersionFile.exists) scala.io.Source.fromFile(goVersionFile).mkString else "0"
+  val goVersion =  Option(System.getProperty("go.version")).map(Integer.parseInt).getOrElse(0)
+  val innovaSuffix = "-inn"
 
   lazy val publishedProjects = Seq[ProjectReference](
     PlayProject,
@@ -375,7 +376,7 @@ object PlayBuild extends Build {
   )
     
   lazy val Root = Project(
-    "Root",
+    "Root" + PlayBuild.innovaSuffix,
     file("."))
     .settings(playCommonSettings: _*)
     .settings(dontPublishSettings:_*)
