@@ -66,7 +66,7 @@ trait Settings {
 
     libraryDependencies <+= (playPlugin) {
       isPlugin =>
-        val d = component("com.typesafe.play")
+        val d = component("play")
         if (isPlugin)
           d % "provided"
         else
