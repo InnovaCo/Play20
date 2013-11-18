@@ -75,7 +75,7 @@ trait Settings {
     libraryDependencies += component("play-test"),
 
     ivyConfigurations += DocsApplication,
-    libraryDependencies += component("play-docs"),
+    libraryDependencies += component("play-docs") % DocsApplication.name,
     manageClasspath(DocsApplication),
 
     parallelExecution in Test := false,
