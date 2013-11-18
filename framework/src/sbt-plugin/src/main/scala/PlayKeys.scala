@@ -17,11 +17,11 @@ trait Keys {
 
   val javaJpa = component("play-java-jpa")
 
+  val filters = component("filters-helpers")
+
+  val cache = component("play-cache")
+
   def component(id: String) = "com.typesafe.play" %% (id + play.core.PlayVersion.innovaSuffix) % play.core.PlayVersion.current
-
-  val filters = "com.typesafe.play" %% "filters-helpers" % play.core.PlayVersion.current
-
-  val cache = "com.typesafe.play" %% "play-cache" % play.core.PlayVersion.current
 
   val playVersion = SettingKey[String]("play-version")
 

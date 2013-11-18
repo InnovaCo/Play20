@@ -64,17 +64,18 @@ trait Settings {
 
     javacOptions in (Compile, doc) := List("-encoding", "utf8"),
 
-    libraryDependencies <+= (playPlugin) { isPlugin =>
-      val d = "com.typesafe.play" %% "play" % play.core.PlayVersion.current
-      if (isPlugin)
-        d % "provided"
-      else
-        d
+    libraryDependencies <+= (playPlugin) {
+      isPlugin =>
+        val d = component("com.typesafe.play")
+        if (isPlugin)
+          d % "provided"
+        else
+          d
     },
-    libraryDependencies += "com.typesafe.play" %% "play-test" % play.core.PlayVersion.current % "test",
+    libraryDependencies += component("play-test"),
 
     ivyConfigurations += DocsApplication,
-    libraryDependencies += "com.typesafe.play" %% "play-docs" % play.core.PlayVersion.current % DocsApplication.name,
+    libraryDependencies += component("play-docs"),
     manageClasspath(DocsApplication),
 
     parallelExecution in Test := false,
