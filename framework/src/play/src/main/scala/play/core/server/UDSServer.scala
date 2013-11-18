@@ -7,7 +7,6 @@ import play.api.Play
 import java.util.concurrent.Executors
 import scala.util.control.NonFatal
 import org.jboss.netty.channel.group.DefaultChannelGroup
-import java.io.File
 import play.core.NamedThreadFactory
 import play.core.server.netty.PlayDefaultUpstreamHandler
 
