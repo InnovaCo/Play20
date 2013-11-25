@@ -44,7 +44,8 @@ trait Settings {
     playPlugin := false,
 
     resolvers ++= Seq(
-      "Typesafe Releases Repository" at "http://repo.typesafe.com/typesafe/releases/"
+      "Typesafe Releases Repository" at "http://repo.typesafe.com/typesafe/releases/",
+      "Innova thirdparty repo" at "http://repproxy.srv.inn.ru/artifactory/ext-release-local"
     ),
 
     target <<= baseDirectory / "target",
