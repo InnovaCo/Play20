@@ -45,7 +45,8 @@ trait Settings {
 
     resolvers ++= Seq(
       "Typesafe Releases Repository" at "http://repo.typesafe.com/typesafe/releases/",
-      "Innova thirdparty repo" at "http://repproxy.srv.inn.ru/artifactory/ext-release-local"
+      "Innova thirdparty repo" at "http://repproxy.srv.inn.ru/artifactory/ext-release-local",
+      "Clojars repo" at "https://clojars.org/repo"
     ),
 
     target <<= baseDirectory / "target",
