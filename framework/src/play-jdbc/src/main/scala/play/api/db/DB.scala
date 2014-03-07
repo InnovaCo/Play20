@@ -382,6 +382,7 @@ private[db] class BoneCPApi(configuration: Configuration, classloader: ClassLoad
     datasource.setDisableJMX(conf.getBoolean("disableJMX").getOrElse(true))
     datasource.setStatisticsEnabled(conf.getBoolean("statisticsEnabled").getOrElse(false))
     datasource.setIdleConnectionTestPeriod(conf.getMilliseconds("idleConnectionTestPeriod").getOrElse(1000 * 60), java.util.concurrent.TimeUnit.MILLISECONDS)
+    datasource.setDisableConnectionTracking(conf.getBoolean("disableConnectionTracking").getOrElse(false))
 
     conf.getString("initSQL").map(datasource.setInitSQL(_))
     conf.getBoolean("logStatements").map(datasource.setLogStatementsEnabled(_))
